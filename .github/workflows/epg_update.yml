@@ -1,0 +1,45 @@
+name: Update EPG Data
+
+# 触发条件：每天北京时间早上6点（UTC时间22点）或手动触发
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  download-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 下载 EPG 文件
+      # -L 跟随重定向, --retry 重试次数
+      - name: Download EPG xml
+        run: |
+          wget -O epg.xml --tries=5 --wait=2 https://epg.112114.xyz/pp.xml
+          
+          # 可选：如果还需要整合其他源，可以在这里继续添加 wget 命令下载为 epg2.xml 等
+          # 或者运行你自己的 Python 脚本来合并 xml
+
+      # 检查文件是否下载成功（防止源挂了导致空文件覆盖）
+      - name: Check file size
+        run: |
+          if [ -s epg.xml ]; then
+            echo "File downloaded successfully."
+          else
+            echo "File is empty or download failed."
+            exit 1
+          fi
+
+      # 提交更改到 GitHub
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add epg.xml
+          git commit -m "Update EPG data: $(date)" || exit 0
+          git push
