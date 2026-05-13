@@ -1,42 +1,20 @@
 name: Update EPG Data
 
-# 触发条件：每天北京时间早上6点（UTC时间22点）或手动触发
 on:
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '0 22 * * *'   # 每天北京时间早上6点（UTC 22:00）
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  download-and-update:
+  update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Download and filter EPG
-        run: python3 update_epg.py
-
-      - name: Check file
+      - name: Download and push EPG
         run: |
-          if [ -s epg.xml ]; then
-            echo "EPG downloaded OK ($(wc -c < epg.xml) bytes)"
-          else
-            echo "EPG is empty!"
-            exit 1
-          fi
-
-      - name: Commit and Push
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add epg.xml
-          git commit -m "Update EPG: $(date -u '+%Y-%m-%d %H:%M UTC')" || exit 0
-          git push
+          chmod +x update_epg.sh
+          bash update_epg.sh
