@@ -14,32 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 下载 EPG 文件
-      # -L 跟随重定向, --retry 重试次数
-      - name: Download EPG xml
-        run: |
-          wget -O epg.xml --tries=5 --wait=2 https://epg.112114.xyz/pp.xml
-          
-          # 可选：如果还需要整合其他源，可以在这里继续添加 wget 命令下载为 epg2.xml 等
-          # 或者运行你自己的 Python 脚本来合并 xml
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      # 检查文件是否下载成功（防止源挂了导致空文件覆盖）
-      - name: Check file size
+      - name: Download and filter EPG
+        run: python3 update_epg.py
+
+      - name: Check file
         run: |
           if [ -s epg.xml ]; then
-            echo "File downloaded successfully."
+            echo "EPG downloaded OK ($(wc -c < epg.xml) bytes)"
           else
-            echo "File is empty or download failed."
+            echo "EPG is empty!"
             exit 1
           fi
 
-      # 提交更改到 GitHub
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add epg.xml
-          git commit -m "Update EPG data: $(date)" || exit 0
+          git commit -m "Update EPG: $(date -u '+%Y-%m-%d %H:%M UTC')" || exit 0
           git push
