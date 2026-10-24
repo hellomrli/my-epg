@@ -1,0 +1,70 @@
+{
+  "_comment": "EPG 源配置。每组内按顺序尝试，第一个成功的生效；组之间全部参与合并，priority 越小越优先。",
+  "groups": [
+    {
+      "name": "51zmt-e1",
+      "priority": 10,
+      "sources": [
+        {
+          "name": "51zmt-e1",
+          "url": "http://epg.51zmt.top:8000/e1.xml.gz",
+          "note": "老张EPG e1：央视/卫视/数字付费/省级地方台，含节目详情，约两天"
+        },
+        {
+          "name": "51zmt-e1-gitee",
+          "url": "https://gitee.com/taksssss/tv/raw/main/epg/51zmte1.xml.gz",
+          "note": "老张 e1 的 gitee 镜像（taksssss/tv），老张主站失效时使用"
+        }
+      ]
+    },
+    {
+      "name": "112114",
+      "priority": 20,
+      "sources": [
+        {
+          "name": "112114",
+          "url": "https://epg.112114.xyz/pp.xml",
+          "note": "112114 聚合源，约 540 个频道，含部分广西地市台，当天数据"
+        },
+        {
+          "name": "112114-gitee",
+          "url": "https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz",
+          "note": "112114 的 gitee 镜像"
+        }
+      ]
+    },
+    {
+      "name": "epg.pw-cn",
+      "priority": 30,
+      "sources": [
+        {
+          "name": "epg.pw-cn",
+          "url": "https://epg.pw/xmltv/epg_CN.xml.gz",
+          "note": "epg.pw 中国区，约 700 个频道，提供未来 7 天"
+        }
+      ]
+    },
+    {
+      "name": "kuke31",
+      "priority": 40,
+      "sources": [
+        {
+          "name": "kuke31",
+          "url": "https://raw.githubusercontent.com/kuke31/xmlgz/main/all.xml.gz",
+          "note": "erw 免费版，约 500 个频道，含广西移动轮播/睛彩/黑莓等特色频道"
+        }
+      ]
+    },
+    {
+      "name": "ccsh",
+      "priority": 50,
+      "sources": [
+        {
+          "name": "ccsh",
+          "url": "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/e.xml.gz",
+          "note": "CCSH/IPTV 聚合源，频道 id 体系与 51zmt 一致，作为最后兜底"
+        }
+      ]
+    }
+  ]
+}

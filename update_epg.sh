@@ -1,11 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# EPG 中转脚本
-# 每天定时从 51zmt 拉取 EPG，推送到 GitHub
-# 失败时自动重试（最多3次，每次间隔递增）
+# my-epg 每日构建脚本
+# 多源聚合 + 组内 fallback，任意单一源失效都不会中断
 #
-
-set -e
+set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$REPO_DIR"
@@ -14,48 +12,40 @@ LOG() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
-RETRY=0
-MAX_RETRIES=3
-DELAY_BASE=30  # 秒
+PLAYLIST="${PLAYLIST:-https://raw.githubusercontent.com/hellomrli/my-IPTV/main/IPTV.m3u}"
 
-while true; do
-    RETRY=$((RETRY + 1))
-    LOG "第 ${RETRY} 次尝试下载 EPG..."
-
-    # 下载 EPG（跟随重定向，302 -> exml.51zmt.top）
-    if wget -O epg.xml \
-            --timeout=60 \
-            --tries=1 \
-            -q \
-            "http://epg.51zmt.top:8000/e.xml"; then
-
-        FILE_SIZE=$(wc -c < epg.xml)
-        if [ "$FILE_SIZE" -gt 50000 ]; then
-            LOG "下载成功 (${FILE_SIZE} bytes)"
-            break
-        else
-            LOG "文件太小 (${FILE_SIZE} bytes)，视为失败"
-        fi
-    else
-        LOG "下载失败"
+for attempt in 1 2 3; do
+    LOG "第 ${attempt} 次构建 EPG..."
+    if python3 build_epg.py \
+        --playlist "$PLAYLIST" \
+        --output epg.xml \
+        --report build_report.json; then
+        break
     fi
-
-    if [ "$RETRY" -ge "$MAX_RETRIES" ]; then
-        LOG "已达最大重试次数 ${MAX_RETRIES}，放弃"
+    if [ "$attempt" -ge 3 ]; then
+        LOG "构建失败，保留旧 epg.xml 不提交"
         exit 1
     fi
-
-    DELAY=$((DELAY_BASE * RETRY))
+    DELAY=$((attempt * 15))
     LOG "${DELAY} 秒后重试..."
     sleep "$DELAY"
 done
 
-# 提交推送
-cd "$REPO_DIR"
+# 输出合法性校验：必须是可解析的 XMLTV，且频道/节目非空
+python3 - <<'PY'
+import xml.etree.ElementTree as ET
+root = ET.parse("epg.xml").getroot()
+channels = len(root.findall("channel"))
+programmes = len(root.findall("programme"))
+assert channels > 0, "epg.xml 没有 channel"
+assert programmes > 0, "epg.xml 没有 programme"
+print(f"校验通过: {channels} channels / {programmes} programmes")
+PY
+
 git config --local user.email "action@github.com"
 git config --local user.name "GitHub Action"
 
-if git diff --quiet epg.xml; then
+if git diff --quiet -- epg.xml; then
     LOG "EPG 无变化，跳过提交"
 else
     git add epg.xml
